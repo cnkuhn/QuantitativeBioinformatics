@@ -1,0 +1,236 @@
+---
+title: "HW3"
+author: "Corey Kuhn"
+date: "3/12/2018"
+output: pdf_document
+---
+
+\newcommand{\newprob}
+    {
+    \vskip 1cm
+    }
+\newcommand{\newln}
+    {
+    \vskip .1cm
+    }
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Problem 1
+
+$p(x) = e^{-\lambda}\frac{\lambda^x}{x!}$  
+
+$L(\lambda) = f(x_1,...,x_n)$  
+
+$= f(x_1)f(x_2)...f(x_n)$  
+
+$= e^{-\lambda}\frac{\lambda^{x_1}}{x_1!} \cdot e^{-\lambda}\frac{\lambda^{x_2}}{x_2!} \cdot\cdot\cdot e^{-\lambda}\frac{\lambda^{x_n}}{x_n!}$  
+
+$= e^{-n\lambda}\frac{\lambda^{\sum_{i=1}^{n} x_i}}{\prod_{i=1}^{n} x_i!}$  
+
+$ln\big(L(\lambda)\big) = l(\lambda) = ln(e^{-n\lambda}\frac{\lambda^{\sum_{i=1}^{n} x_i}}{\prod_{i=1}^{n} x_i!})$  
+
+$= ln(e^{-n\lambda}) + ln(\lambda^{\sum_{i=1}^{n} x_i}) - ln(\prod_{i=1}^{n} x_i!)$  
+
+$= -n\lambda + \sum_{i=1}^{n} x_i \cdot ln(\lambda) - \sum_{i=1}^{n} ln(x_i!)$  
+
+$\frac{d}{d\lambda} = -n + \frac{\sum_{i=1}^{n} x_i}{\lambda}$  
+
+$0 = -n + \frac{\sum_{i=1}^{n} x_i}{\lambda}$  
+
+$\mathbf{\hat{\lambda}_{MLE} = \frac{\sum_{i=1}^{n} x_i}{n} = \bar{x}}$  
+
+\newpage
+
+## Problem 2
+
+$\mathbf{Var(X) = E(X^2) - [E(X)]^2 = 0.25}$
+
+\newln
+```{r}
+# How do we find the expected value?
+fex <- function(x,lambda=1){x*lambda*exp(-lambda*x)}
+fex2 <- function(x,lambda=1){x^2*lambda*exp(-lambda*x)}
+
+# With parameter lambda=2
+expx <- integrate(fex,0,20,lambda=2)$value
+expx2 <- integrate(fex2,0,20,lambda=2)$value
+
+# Variance
+expx2 - expx^2
+```
+
+\newpage
+
+## Problem 3
+
+**Part(a)** 
+
+We approximate the following probabilities using the Normal distribution, with continuity correction:  
+
+$\mathbf{P(0 \leq N \leq 329) = 0.9791094}$  
+
+$\mathbf{P(285.5 \leq N \leq 329) = 0.8121103}$  
+
+\newln
+```{r}
+# n=1000, p=.3
+# P(N <= 329)
+pbinom(329,1000,.3)
+
+# Normal approx
+pnorm(329,1000*.3,sqrt(1000*.3*(1-.3)))
+
+# Normal approx with continuity correction.
+pnorm(329.5,1000*.3,sqrt(1000*.3*(1-.3)))
+
+# P(285.5 <= N <= 329)
+pnorm(329.5,1000*.3,sqrt(1000*.3*(1-.3))) - pnorm(286,1000*.3,sqrt(1000*.3*(1-.3)))
+```
+
+\newprob
+
+**Part(b)** 
+
+$\mathbf{CI_{95\%}(p_G) = (0.2521708, 0.3078292)}$
+
+\newln
+```{r}
+# 95% CI approximation by normal distribution
+phat <- 0.28
+n <- 1000
+lowerBound <- phat - 1.96*sqrt(phat*(1-phat)/n)
+upperBound <- phat + 1.96*sqrt(phat*(1-phat)/n)
+c(lowerBound,upperBound)
+```
+
+\newpage
+
+## Problem 4
+
+**Part(a)**
+
+Because we obtained a  p-value of 0.05087, which is greater than $\alpha=0.05$, in the Shapiro-Wilk test for normality, we fail to reject the null hypothesis that the data for Gene 36 is normal. Therefore, we proceed with a one-sample t-test. At a significance level of $\alpha=0.05$, we obtain a p-value of 0.09407 and fail to reject the null hypothesis that the true mean expression for Gene 36 is equal to 0.2.
+
+\newln
+```{r}
+# Leukemia dataset
+leukemia<- read.csv("http://web.stanford.edu/~hastie/CASI_files/DATA/leukemia_small.csv")
+class<-c(rep(0,27),rep(1,11),rep(0,11),rep(1,5),rep(0,2),rep(1,2),0,rep(1,7),rep(0,6))
+colnames(leukemia)<-NULL
+data<-rbind(class,leukemia)
+colnames(data)<-c(1:72)
+Gene36 <- as.numeric(data[37,])
+
+# TEST FOR NORMALITY
+shapiro.test(Gene36)
+
+# Test H_0: mu=0.2 vs. H_1: mu!=0.2
+t.test(Gene36,mu=0.2) 
+```
+
+\newprob
+
+**Part(b)**
+
+We use an F test to verify that the variances of the ALL and AML group for Gene 36 are equal. Because we obtain a p-value of 0.5576, we retain then null hypothesis that the variances are equal, and can proceed with a paired t-test. Testing the equality of means for gene expression for Gene 36 between the two groups, we obtain a p-value of 0.6791, so at a significance level of $\alpha=0.05$, we fail to reject the null hypothesis that the means are equal for Gene 36 between ALL and AML groups.
+
+\newln
+```{r}
+class<-as.numeric(data[1,])
+
+# Test if variances are equal
+var.test(Gene36~class)
+
+# Test H_0: mu1=mu2 vs. H_1: mu1!=mu2
+t.test(Gene36~class,var.equal=TRUE)
+```
+
+\newprob
+
+**Part(c)**
+
+Using an F test in a linear model, we obtain the same p-value as we did in Part(b) for testing the equality of means of gene expression for Gene 36 between ALL and AML patients.
+
+\newln
+```{r}
+c1 <- c(rep(1,27),rep(0,11),rep(1,11),rep(0,5),rep(1,2),rep(0,2),1,rep(0,7),rep(1,6))
+c2 <- c(rep(0,27),rep(1,11),rep(0,11),rep(1,5),rep(0,2),rep(1,2),0,rep(1,7),rep(0,6))
+x <- cbind(c1,c2)
+y <- Gene36
+anova(lm(y ~ x))
+```
+
+\newprob
+
+**Part(d)**
+
+The Shapiro-Wild normality test suggests that the gene expression of Gene 36 for AML patients is not normal, so we proceed with the Wilcoxon Rank Sum test to test the equality of the means for gene expression among each group. Here we get a p-value of 0.4732, so at a significance level of $\alpha=0.05$, we fail to reject the null hypothesis that the mean gene expression of Gene 36 for the ALL group is equal to the mean gene expression of Gene 36 for the AML group.
+
+\newln
+```{r}
+# Testing normality of each group
+ALL <- as.numeric(data[37,][which(data[1,]==0)])
+AML <- as.numeric(data[37,][which(data[1,]==1)])
+shapiro.test(ALL)
+shapiro.test(AML)
+
+# WILCOXON RANK SUM TEST
+wilcox.test(Gene36~class)
+```
+
+\newpage
+
+## Problem 5
+
+**Part(a)**
+
+$Y=X\beta + \epsilon$
+
+$\begin{pmatrix} 3 \\ 5 \\ 7 \\ 9 \\ 2 \\ 11 \\ 12 \\ 9 \\ 8 \\ 7 \\ 5 \\ 6 \end{pmatrix} = \begin{pmatrix} 1 & 0 & 0 \\ 1 & 0 & 0 \\ 1 & 0 & 0 \\ 1 & 0 & 0 \\ 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 1 & 0 \\ 0 & 1 & 0 \\ 0 & 0 &1 \\0 & 0 &1 \\0 & 0 &1 \\0 & 0 &1\end{pmatrix} \begin{pmatrix} \beta_1 \\ \beta_2 \\ \beta_3\end{pmatrix} + \begin{pmatrix} \epsilon_{11} \\ \epsilon_{21} \\ \epsilon_{31} \\ \epsilon_{41} \\ \epsilon_{51} \\ \epsilon_{12} \\ \epsilon_{22} \\ \epsilon_{32} \\ \epsilon_{13} \\ \epsilon_{23} \\ \epsilon_{33} \\ \epsilon_{43} \end{pmatrix}$  
+
+Y is the response vector, or the gene expression values, and has the dimensions $12\times1$. X is the design matrix, which tells us which group each patient belongs to, with dimensions $12\times3$. More specifically, $x_{ij}$ is equal to 1 if patient $i$ belongs to group $j$. $\beta$ contains the parameter estimates for each group, and it has the dimensions $3\times1$. $\epsilon$ is the vector of error terms for each patient, with dimensions $12\times1$.  
+\newln
+Assumptions: We assume that the error terms are normally distributed and we assume homoscedasticity of the error terms. $H_0: \beta_1 = \beta_2 = \beta_3$ vs. $H_1:$ at least one $\beta$ is different. Because we obtain a p-value of 0.02119, which is less than a significance level of $\alpha=0.05$, we reject the null hypothesis and conclude that at least one of the $\beta$'s is significantly different than the others.
+
+\newln
+```{r}
+y <- c(3,5,7,9,2, 11,12,9, 8,7,5,6) #response vector
+c1<-c(rep(1,5),rep(0,7))
+c2<-c(rep(0,5),rep(1,3),rep(0,4))
+c3<-c(rep(0,8),rep(1,4))
+x<-cbind(c1,c2,c3) # design matrix
+
+anova(lm(y ~ x))
+```
+
+\newprob
+
+**Part(b)**
+
+(i) $H_0: \mu_2=\mu_3$ vs. $H_1: \mu_2\neq\mu_3$  
+Because we obtain a p-value of 0.0332, which is less than a significance level of $\alpha=0.05$, we reject the null hypothesis and conclude that there is a significant difference between $\mu_2$ and $\mu_3$.
+
+(ii) $H_0: \mu_1+\mu_3=\mu_2$ vs. $H_1: \mu_1+\mu_3\neq\mu_2$  
+Because we obtain a p-value of 0.604, which is greater than a significance level of $\alpha=0.05$, we fail to reject the null hypothesis and conclude that $\mu_1+\mu_3=\mu_2$.
+
+\newln
+```{r, warning=FALSE, message=FALSE}
+library(multcomp)
+l<-lm(y~x-1) #runs the linear model without intercept
+
+# Test H_0: mu2=mu3 vs. H_1: mu2!=mu3
+k<-matrix(c(0,1,-1),1)
+test<-glht(l,linfct=k)
+summary(test)
+
+# Test H_0: mu1+mu3=mu2 vs. H_1: mu1+mu3!=mu2
+k<-matrix(c(1,-1,1),1)
+test<-glht(l,linfct=k)
+summary(test)
+```
+
+
+

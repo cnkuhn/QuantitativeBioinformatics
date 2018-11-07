@@ -1,0 +1,247 @@
+---
+title: "HW2"
+author: "Corey Kuhn"
+date: "2/13/2018"
+output: pdf_document
+---
+
+\newcommand{\newprob}
+    {
+    \vskip 1cm
+    }
+\newcommand{\newln}
+    {
+    \vskip .1cm
+    }
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE}
+library(knitr)
+opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
+```
+
+## Problem 1
+
+**Part(a)**  
+\newln
+$\mathbf{P(red)} = \frac{3}{4} \big(\frac{5}{25}\big) + \frac{1}{4}\big(\frac{15}{25}\big)$  
+
+$= \mathbf{0.3}$  
+\newln
+```{r}
+(3/4)*(5/25) + (1/4)*(15/25)
+```
+
+\newprob
+
+**Part(b)**  
+\newln
+$\mathbf{P(TypeB | red)} = \frac{P(TypeB) P(red | TypeB)}{P(TypeB) P(red | TypeB) + P(TypeA) P(red | TypeA)}$  
+
+$= \frac{\frac{1}{4}\big(\frac{15}{25}\big)}{\frac{1}{4} \big(\frac{15}{25}\big) + \frac{3}{4} \big(\frac{5}{25}\big)}$  
+
+$= \mathbf{0.5}$  
+\newln
+```{r}
+((1/4)*(15/25)) / ((1/4)*(15/25) + (3/4)*(5/25))
+```
+
+\newpage
+
+## Problem 2
+
+**Part(a)**  
+
+$H_0: P(X_t = r_t | X_{t-1} = r_{t-1}) = P(X_t = r_t)$  
+$H_A: P(X_t = r_t | X_{t-1} = r_{t-1}) \neq P(X_t = r_t)$  
+
+Because we obtain a p-value of $4.451 \times 10^{-05}$, which is less than $\alpha=0.05$, we reject the null hypothesis of independence between adjacent nucleotides and conclude that it is likely that adjacent nucleotides are dependent.  
+\newln
+```{r, warning=FALSE}
+library(ade4)
+library(seqinr)
+ecoli <- read.fasta("~/Desktop/Desktop/Loyola Grad/Semester2/STAT437 - Quantitative Bioinformatics/HW1/AE005174v2.fas")
+ecoli <- c(ecoli[[1]],ecoli[[2]])
+x <- cbind(ecoli[1:1000],ecoli[2:1001])
+chisq.test(table(x[,1],x[,2]))
+```
+
+\newprob
+
+**Part(b)**  
+
+See the output below for the estimated transition matrix.
+\newln
+```{r}
+proptab <- prop.table(table(x[,1],x[,2]))
+a <- rep(NA,4)
+c <- rep(NA,4)
+g <- rep(NA,4)
+t <- rep(NA,4)
+P <- as.data.frame(rbind(a,c,g,t))
+names(P) <- c("a","c","g","t")
+for (col in 1:4){
+  for (row in 1:4){
+    P[row,col] <- proptab[row,col]/sum(proptab[row,])
+  }
+}
+P
+```
+
+\newprob
+
+**Part(c)**  
+
+We can see that the entries within the same column appear to be approaching the same number. The column of "a" appears to be approaching 0.26, the column of "c" appears to be approaching 0.26, the column of "g" appears to be approaching 0.24, and the column of "t" appears to be approaching 0.22. These are approximately the proportions of a, c, g, and t in the first 1001 bases of the sequence.
+\newln
+```{r, message=FALSE}
+library(expm)
+P <- as.matrix(P)
+P
+P %^% 2
+P %^% 4
+P %^% 8
+prop.table(table(ecoli[1:1001]))
+```
+
+\newpage
+
+## Problem 3
+
+**Part(a)**
+
+See code below for simulating 5000 observations from this Markov chain.
+\newln
+```{r}
+pi <- rep(0.25,4)
+nucleotides <- c("a","c","t","g")
+lengthOfChain <- 5000
+chain <- rep(NA, lengthOfChain)
+set.seed(123)
+chain[1]<-sample(nucleotides,1,p=pi)
+chain[2]<-sample(nucleotides,1,p=P[chain[1],])
+for (i in 2:lengthOfChain-1){
+  chain[i+1]<-sample(nucleotides,1,p=P[chain[i],])
+}
+head(chain,n=20)
+```
+
+\newprob
+
+**Part(b)**
+
+The distribution of 2-words in the simulated chain is fairly similar to the distribution of 2-words in the actual E. Coli data. The proportion of 2-words ending in a or c appear to be very similar in the simulated chain and in the actual data, since the difference between the two starts in the thousandths. There is a higher discrepancy in some of the 2-words ending in g or t, since there is a greater difference between the real data and the simulated chain. Overall, all of the differences in the two distributions are very small.
+\newln
+```{r}
+# Distribution of 2-words in the simulated chain
+sim <- cbind(chain[1:1-lengthOfChain],chain[2:lengthOfChain])
+sim.tab <- prop.table(table(sim[,1],sim[,2]))
+# Distribution of 2-words  in the actual data
+real.tab <- prop.table(table(x[,1],x[,2]))
+# Difference between distributions
+real.tab - sim.tab
+```
+
+\newpage
+
+## Problem 4
+
+**Part(a)**
+
+See table outputs below for the distribution of X when n is 1000, 10000, and 100000. 
+
+$E[X_{n=1000}] = 5.75$  
+
+$E[X_{n=10000}] = 7.52$  
+
+$E[X_{n=100000}] = 8.78$  
+\newln
+```{r}
+pi <- rep(0.25,4)
+P <- rep(.25,4)
+nucleotides <- c("a","c","t","g")
+nsim <- 100 # number of simulations of chain
+
+# For n=1000
+set.seed(123)
+n <- 1000 # length of chain
+X1 <- rep(NA,nsim) # vector containing a value of X for each simulation
+# Simulate the chain
+for (s in 1:nsim){
+  chain <- rep(NA, n)
+  chain[1]<-sample(nucleotides,1,p=pi)
+  chain[2]<-sample(nucleotides,1,p=P)
+  for (i in 2:n-1){
+    chain[i+1]<-sample(nucleotides,1,p=P)
+  }
+  # Find X
+  X1[s] <- max(rle(chain)$lengths)
+}
+
+# For n=10000
+set.seed(345)
+n <- 10000 # length of chain
+X2 <- rep(NA,nsim) # vector containing a value of X for each simulation
+# Simulate the chain
+for (s in 1:nsim){
+  chain <- rep(NA, n)
+  chain[1]<-sample(nucleotides,1,p=pi)
+  chain[2]<-sample(nucleotides,1,p=P)
+  for (i in 2:n-1){
+    chain[i+1]<-sample(nucleotides,1,p=P)
+  }
+  # Find X
+  X2[s] <- max(rle(chain)$lengths)
+}
+
+# For n=100000
+set.seed(678)
+n <- 100000 # length of chain
+X3 <- rep(NA,nsim) # vector containing a value of X for each simulation
+# Simulate the chain
+for (s in 1:nsim){
+  chain <- rep(NA, n)
+  chain[1]<-sample(nucleotides,1,p=pi)
+  chain[2]<-sample(nucleotides,1,p=P)
+  for (i in 2:n-1){
+    chain[i+1]<-sample(nucleotides,1,p=P)
+  }
+  # Find X
+  X3[s] <- max(rle(chain)$lengths)
+}
+
+# Distribution of X when n=1000
+tab.X1 <- prop.table(table(X1))
+tab.X1
+# Distribution of X when n=10000
+tab.X2 <- prop.table(table(X2))
+tab.X2
+# Distribution of X when n=100000
+tab.X3 <- prop.table(table(X3))
+tab.X3
+
+# Expected value of X for n=1000
+x1 <- as.integer(names(tab.X1))
+px1 <- as.vector(tab.X1)
+EX1 <- sum(x1*px1)
+EX1
+
+# Expected value of X for n=10000
+x2 <- as.integer(names(tab.X2))
+px2 <- as.vector(tab.X2)
+EX2 <- sum(x2*px2)
+EX2
+
+# Expected value of X for n=100000
+x3 <- as.integer(names(tab.X3))
+px3 <- as.vector(tab.X3)
+EX3 <- sum(x3*px3)
+EX3
+```
+
+
+
+

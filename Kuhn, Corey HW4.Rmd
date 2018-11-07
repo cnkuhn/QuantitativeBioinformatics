@@ -1,0 +1,165 @@
+---
+title: "HW4"
+author: "Corey Kuhn"
+date: "4/14/2018"
+output: pdf_document
+---
+
+\newcommand{\newprob}
+    {
+    \vskip 1cm
+    }
+\newcommand{\newln}
+    {
+    \vskip .1cm
+    }
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE}
+library(knitr)
+opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
+```
+
+## Problem 1
+
+**Part(a)**  
+
+After fitting the logistic regression model using all variables to predict the origin, the summary shows us that none of the predictor variables are significant. All of the predictors have a p-value of approximately 1, which is much greater than a significance level of 0.05. However, we can still interpret the coefficient estimates of the model. For instance, the estimated coefficient for V2 is 31.39. This means that holding all other predictors constant, the odds ratio is a predicted $e^{31.39}$ times larger for each unit increase in V2. The coefficient estimates for the other predictor variables will be interpreted in a similar way.
+\newln
+```{r}
+dat <- read.table("~/Desktop/Desktop/Loyola Grad/Semester2/STAT437 - Quantitative Bioinformatics/HW4/wine_data.txt", sep=",")
+classes <- dat$V1
+dat$V1 <- ifelse(dat$V1==1, 1, 0)
+model <- glm(V1 ~ ., family = binomial(logit), data=dat, control = list(maxit = 50))
+summary(model)
+```
+
+\newprob
+
+**Part(b)**
+
+Stepwise selection chose only the variables V3, V5, V8, V9, V13, and V14 to include as predictors in the logistic regression model. In the summary output, we can see that none of these variables have a p-value less than a significance level of 0.05. Although none of the variables are considered significant, this is the model chosen as best, since it gives us the lowest AIC compared with models containing different combinations of predictors. The coefficient estimates here can be interpreted in a similar manner as in Part(a). For example, holding all other predictors in the model constant, the odds ratio is a predicted $e^{126.9}$ times larger for each unit increase in V3.
+\newln
+```{r, warning=FALSE}
+library(MASS)
+mod2 <- stepAIC(model, direction="both")
+summary(mod2)
+```
+
+\newpage
+
+## Problem 2
+
+**Part(a)**  
+
+Using 10-fold cross-validation on a training set containing 75% of the observations, we see that the model specified in Problem 1, Part(b) returns an average accuracy of 0.9561384. This means that on average, this model will predict classifications correctly about 95.6% of the time.
+\newln
+```{r, warning=FALSE}
+library(caret)
+set.seed(123)
+ind <- createDataPartition(dat$V1, p=0.75, list=FALSE)
+train <- dat[ind,]
+test <- dat[-ind,]
+
+# K-fold CV
+k<-10
+acc <- rep(NA, k)
+set.seed(123)
+for(i in 1:k){
+  Train <- createDataPartition(dat$V1, p=0.75, list=FALSE)
+  training <- train[ Train, ]
+  testing <- train[ -Train, ]
+  model3 <- glm(V1 ~ V3+V5+V8+V9+V13+V14,
+              family = binomial(logit), data = training, control = list(maxit = 50))
+  pred<-predict(model3, newdata=testing, type="response")
+  results <- ifelse(pred > 0.5,1,0)
+  answers <- testing$V1
+  misClasificError <- mean(answers != results)
+  acc[i]=1-misClasificError
+}
+mean(acc)
+```
+
+\newprob
+
+**Part(b)**  
+
+Using leave-one-out cross-validation, we see that the model specified in Problem 1, Part(b) returns an average accuracy of 0.9552239. This means that on average, this model will predict classifications correctly about 95.5% of the time. This is very close to the prediction of accuracy that we obtain from Part(a) of Problem 2. We can see how accurate each method is in predicting the accuracy of the model specified in Problem 1, Part(b) by fitting the model on the entire train set and using it on the test set containing the remaining 25% of the observations. Calculating the accuracy of the model on the test set, we obtain a value of 0.9545455. This means that the model predicts the origin (1 or not) correctly about 95.5% of the time in the test set, which is very close to what we obtaing from 10-fold and leave-one-out CV.
+\newln
+```{r, warning=FALSE}
+# Leave one out CV
+acc1 <- rep(NA,nrow(train))
+for(i in 1:nrow(train)){
+  training <- train[-i,]
+  testing <- train[i,]
+  model4 <- glm(V1 ~ V3+V5+V8+V9+V13+V14,
+              family = binomial(logit), data = training, control = list(maxit = 50))
+  pred1 <- predict(model4, newdata=testing, type="response")
+  results1 <- ifelse(pred1 > 0.5,1,0)
+  answers1 <- testing$V1
+  misClasificError1 <- mean(answers1 != results1)
+  acc1[i] <- 1-misClasificError1
+}
+mean(acc1)
+
+# Check actual performance of model on test set
+model5 <- glm(V1 ~ V3+V5+V8+V9+V13+V14,
+              family = binomial(logit), data = train, control = list(maxit = 50))
+pred5 <- predict(model5, newdata=test, type="response")
+results5 <- ifelse(pred5 > 0.5,1,0)
+answers5 <- test$V1
+misClasificError5 <- mean(answers5 != results5)
+(acc5=1-misClasificError5)
+```
+
+\newpage
+
+## Problem 3
+
+**Part(a)**  
+
+Looking at the cumulative proportion of variation accounted for, we must keep the first 8 principal components in order to retain 90% of the variation in the data. Looking at the print of the PCA, we can see the coefficients for each variable that makes up the principal component. Therefore, we can describe what each principal componenet is. For instance looking at PC1, V7, V8, V10, and V13 have the largest absolute value coefficients. This means that this PC is largely determined by these four variables. PC2, however, is largely determined by V2 and V11 since these are the largest coefficients in this PC. We can similarly look at the rest of the PC's to see which of the predictors variables are most important and influential. 
+\newln
+```{r, warning=FALSE}
+predictors <- dat[,-1]
+pca <- prcomp(predictors, center = TRUE, scale. = TRUE)
+summary(pca)
+print(pca)
+```
+
+\newprob
+
+**Part(b)**  
+
+In the biplot, we see that wine samples within the same group have very similar values for PC1 and PC2. We can tell that V7, V8, and V10 have large negative loadings on PC1, while V5 and V9 have moderate positive loadings on PC1, so these are the variables that mainly define PC1. We also see that V2, V4, and V11 have positive loadings on PC2, so PC2 is largely defined by these 3 variables. The findings in this plot are fairly consistent with the variables that we saw which played a big part in each of these 2 PC's just by looking at the coefficients in Part(a).
+\newln
+```{r, warning=FALSE}
+library(devtools)
+install_github("ggbiplot", "vqv")
+library(ggbiplot)
+g <- ggbiplot(pca, obs.scale = 1, var.scale = 1, 
+              groups = as.factor(classes), ellipse = TRUE, 
+              circle = TRUE)
+g <- g + scale_color_discrete(name = '')
+g <- g + theme(legend.direction = 'horizontal', 
+               legend.position = 'top')
+print(g)    
+```
+
+\newprob
+
+**Part(c)**  
+
+Re-fitting the logistic model using the first 8 principal components, we see that none of the PCs are considered significant since they all have p-values higher than the significance level of 0.05. However, we obtain coeffifient estimates that we can interpret in a similar way as Problem 1, Part (b). For instance, we can say that for each unit increase in PC1, the odds ratio is multiplied by a factor of $e^{-42.45}$. A logistic regression model based on principal components is more difficult to interpret than a model based on the actual variables, since the principal components are harder to define. In other words, we do not really know what a 1-unit increase in a principal component means, but we know exactly what a 1-unit increase in the original predictors means.
+\newln
+```{r, warning=FALSE}
+PCs <- predict(pca, newdata=dat)
+resp <- ifelse(dat$V1==1,1,0)
+PCdat <- as.data.frame(cbind(PCs,resp))
+PCdat_sub <- PCdat[,c(1:8,14)]
+modelPC <- glm(resp ~ ., family = binomial(logit), data=PCdat_sub, control = list(maxit = 50))
+summary(modelPC)
+```

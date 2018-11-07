@@ -1,0 +1,229 @@
+---
+title: "HW1"
+author: "Corey Kuhn"
+date: "1/30/2018"
+output: pdf_document
+---
+
+\newcommand{\newprob}
+    {
+    \vskip 1cm
+    }
+\newcommand{\newln}
+    {
+    \vskip .1cm
+    }
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(knitr)
+opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
+```
+
+## Problem 2 - Exercise 1, Page 62
+
+**Part (a)**  
+
+See table in output below.
+\newln
+```{r}
+pc <- .3
+pg <- .3
+pa <- .2
+pt <- .2
+tab <- rbind(pc*c(pc,pg,pa,pt),pg*c(pc,pg,pa,pt),pa*c(pc,pg,pa,pt),pt*c(pc,pg,pa,pt))
+tab <- as.data.frame(tab)
+rownames(tab) <- c("c","g","a","t")
+colnames(tab) <- c("c","g","a","t")
+kable(tab)
+```  
+  
+**Part (b)**  
+\newln
+$\mathbf{P(E)} = P(c \cup t) = P(c) + P(t) = \mathbf{0.5}$
+
+$\mathbf{P(F)} = P(a \cup c \cup t) = P(a) + P(c) + P(t) = \mathbf{0.7}$  
+
+$\mathbf{P(E \cap F)} = P((c \cup t) \cap (a \cup c \cup t)) = \mathbf{0.35}$  
+
+$\mathbf{P(E \cup F)} = P(E) + P(F) - P(E \cap F) = \mathbf{0.85}$  
+
+$\mathbf{P(F^C)} = 1 - P(F) = \mathbf{0.3}$  
+\newln
+```{r}
+sum(tab[c(1,4),]) # P(E)
+sum(tab[,c(1,3,4)]) # P(F)
+sum(tab[c(1,4),c(1,3,4)]) # P(E and F)
+.5 + .7 - .35 # P(E or F)
+1 - .7 # P(F^C)
+```
+
+\newprob
+
+**Part (c)** 
+\newln
+$\mathbf{P(G|E)}$  
+$= P(G \cap E) / P(E)$  
+$= P(ca \cup cc) / 0.5$  
+$= \big[ P(ca) + P(cc) \big] / 0.5$  
+$= \mathbf{0.3}$
+
+$\mathbf{P(F|G \cup E)}$  
+$= P\big[ F \cap (G \cup E) \big] / P(G \cup E)$  
+$= P\big[ (F \cap G) \cup (F \cap E) \big] / \big[ P(G) + P(E) - P(G \cap E) \big]$  
+$= \big[ P(F \cap G) + P(F \cap E) - P(F \cap G \cap E) \big] / \big[ P(G) + P(E) - P(G \cap E) \big]$  
+$= \mathbf{0.7}$  
+
+$\mathbf{P(F \cup G|E)}$  
+$= P\big[ (F \cup G) \cap E \big] / P(E)$  
+$= P\big[ (F \cap E) \cup (G \cap E) \big] / P(E)$  
+$= \big[ P(F \cap E) + P(G \cap E) - P(F \cap E \cap G) \big] / P(E)$  
+$= \mathbf{0.7}$  
+\newln
+```{r}
+sum(tab[1,c(1,3)]) / 0.5 # P(G|E)
+(sum(tab[c(1),c(1,3)]) + 0.35 - sum(tab[c(1),c(1,3)])) / (sum(tab[c(1),c(1,3)]) + sum(tab[c(1,4),]) - sum(tab[c(1),c(1,3)])) # P(F|G or E)
+(0.35 + sum(tab[c(1),c(1,3)]) - sum(tab[c(1),c(1,3)])) / 0.5 # P(F or G|E)
+```
+
+\newpage
+
+## Problem 3 - Exercise 4, Page 62
+
+**Part (a)** 
+---
+$\mathbf{P(N=0)} = \mathbf{0.02824752}$  
+
+$\mathbf{P(N \leq 3)} = \mathbf{0.6496107}$  
+
+$\mathbf{E[N]} = np = \mathbf{3}$  
+
+$\mathbf{Var[N]} = np(1-p) = \mathbf{2.1}$  
+\newln
+```{r}
+n <- 10
+p <- 0.3
+dbinom(0,n,p) # P(N=0)
+pbinom(3,n,p) # P(N<=3)
+n*p # E(N)
+n*p*(1-p) # Var(N)
+```
+
+\newprob
+
+**Part (b)**
+\newln
+The results form part (a) and part (b) are very similar. From part (a), $P(N=0)$ for a binomial distribution with $n=10$ and $p=0.3$ is 0.02824752, while the proportion of results where $N=0$ in the simulation is 0.029. $P(N \leq 3) = 0.6496107$ in part (a) and $P(N \leq 3) = 0.651$ in the simulation. $E[N] = 3$ from part (a) and $E[N] = 2.989$ from the simulation. Lastly, $Var[N] = 2.1$ for the binomial distribution, and $Var[N] = 2.114994$ in the simulation. Since each pair of numbers are very close, we see that by simulating the distribution 1000 times, we can get very close approximations of the true probabilities, expected value, and variance.  
+
+$\mathbf{P(N=0)} = \mathbf{0.029}$  
+
+$\mathbf{P(N \leq 3)} = \mathbf{0.651}$  
+
+$\mathbf{E[N]} = \mathbf{2.989}$  
+
+$\mathbf{Var[N]} = \mathbf{2.114994}$  
+
+\newln
+```{r}
+nsims <- 1000
+set.seed(123)
+sims <- rbinom(nsims, n, p)
+length(sims[sims==0]) / nsims # P(N=0)
+length(sims[sims %in% c(0:3)]) / nsims # P(N<=3)
+mean(sims) # E(N)
+var(sims) # Var(N)
+```
+
+\newpage
+
+## Problem 4 - Exercise 11, Page 64
+
+**Part (a)**
+\newln
+See below table outputs for observed and expected values of each base.  
+\newln
+```{r}
+library(ade4)
+library(seqinr)
+ecoli <- read.fasta("~/Desktop/Desktop/Loyola Grad/Semester2/STAT437 - Quantitative Bioinformatics/HW1/AE005174v2.fas")
+ecoli <- c(ecoli[[1]],ecoli[[2]])
+tab <- table(ecoli)[c("a","c","t","g")]
+p <- prop.table(tab) # Proportion of each base in whole data
+observed <- table(ecoli[1:1000])[c("a","c","t","g")]
+observed # Observed number of each base
+expected <- 1000*p
+expected # Expected number of each base
+```
+
+\newprob
+
+**Part (b)**
+\newln
+Because we obtained a p-value of 0.871, which is greater than $\alpha = 0.05$, we fail to reject the null hypothesis and retain the hypothesis that the $\%(G+C)$ is equal to 50.7\%. Thus, we do not believe that the 1000 BP sequence has an unusual composition relative to $\pi$.
+\newln
+```{r}
+observed <- c(sum(observed[c("g","c")]), sum(observed[c("a","t")]))
+expected <- prop.table(c(sum(expected[c("g","c")]), sum(expected[c("a","t")])))
+chisq.test(observed,p=expected)
+```
+
+\newpage
+
+## Problem 5 - Exercise 12, Page 64
+
+**Part (a)**
+\newln
+See table in output below for the marginal distributions of X and Y, each summing to 1.  
+\newln
+```{r}
+mat <- as.data.frame(cbind(c(.11,.2,0),c(.05,.02,.05),c(.2,0,.1),c(.08,.1,.09)))
+colnames(mat) <- c("P(Y=1)","P(Y=3)","P(Y=6)","P(Y=9)")
+rownames(mat) <- c("P(X=2)","P(X=3)","P(X=7)")
+mat$MargDistX <- apply(mat,1,sum)
+mat[4,] <- apply(mat,2,sum)
+rownames(mat)[4] <- "MargDistY"
+mat
+```
+
+\newprob
+
+**Part (b)**
+\newln
+See below output for probability distribution of Z.
+\newln
+```{r}
+X <- c(2,3,7)
+Y <- c(1,3,6,9)
+outer(X,Y)
+Zdist <- as.data.frame(cbind(unique(sort(as.vector(outer(X,Y)))),c(mat[1,1],mat[2,1],mat[1,2],mat[3,1],mat[2,2],mat[1,3],sum(mat[1,4],mat[2,3]),mat[3,2],mat[2,4],mat[3,3],mat[3,4])))
+names(Zdist) <- c("z","P(Z=z)")
+print(Zdist,row.names=FALSE) # Probability distribution of Z
+```
+
+\newprob
+
+**Part (c)**
+\newln
+$\mathbf{Cov(X,Y)} = E[XY] - E[X]E[Y] = \mathbf{1.512}$  
+$\mathbf{\rho_{X,Y}} = Cov(X,Y) / (\sigma_X \sigma_Y) = \mathbf{0.009974717}$  
+\newln
+```{r}
+# Covariance
+expectX <- 2*.44 + 3*.32 + 7*.24
+expectY <- 1*.31 + 3*.12 + 6*.3 + 9*.27
+expectZ <- sum(apply(Zdist,1,prod))
+expectXY <- expectZ
+cov <- expectXY - (expectX * expectY)
+cov
+# Correlation
+stdX <- sqrt(2^2 * .44 + 3^2 * .32 + 7^2 * .24) - expectX^2
+stdY <- sqrt(1^2 * .31 + 3^2 * .12 + 6^2 * .3 + 9^2 * .27) - expectY^2
+cor <- cov / (stdX * stdY) 
+cor
+```
+
+
+

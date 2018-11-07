@@ -1,0 +1,162 @@
+---
+title: "HW5"
+author: "Corey Kuhn"
+date: "4/22/2018"
+output: pdf_document
+---
+
+\newcommand{\newprob}
+    {
+    \vskip 1cm
+    }
+\newcommand{\newln}
+    {
+    \vskip .1cm
+    }
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE}
+library(knitr)
+opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
+```
+
+## Problem 3
+
+**Part(a)**  
+
+See the output below for the generated sequence of length 300 from this Hidden Markov model. High GC-content is denoted by 1 and low GC-content is denoted by 2.
+
+\newln
+```{r}
+markov <- function(x,P,n){ seq <- x
+for(k in 1:(n-1)){
+  seq[k+1] <- sample(x, 1, replace=TRUE, P[seq[k],])}
+return(seq)
+}
+
+hmmdat <- function(A,E,n){
+  observationset <- c(1:4)
+  hiddenset <- c(1,2) # High is denoted by 1, Low is denoted by 2
+  x <- h <- matrix(NA,nr=n,nc=1)
+  h[1]<-1
+  x[1]<-sample(observationset,1,replace=T,E[h[1],])
+  h <- markov(hiddenset,A,n)
+  for(k in 1:(n-1)){x[k+1] <- sample(observationset,1,replace=T,E[h[k],])}
+  out <- matrix(c(x,h),nrow=n,ncol=2,byrow=FALSE)
+  return(out)
+}
+
+E <- matrix(c(0.2,0.3,0.3,0.2,  0.3,0.2,0.2,0.3), 2,4,byrow=T) #emission matrix, col order is A, C, G, T
+A <- matrix(c(0.5,0.5,0.4,0.6),2,2,byrow=TRUE) #transition matrix
+
+dat <- hmmdat(A,E,300)
+colnames(dat) <- c("observation","hidden_state")
+rownames(dat) <- 1:300
+t(dat)
+
+```
+
+\newpage
+
+**Part(b)**  
+
+See the output below to see the decoding of the Hidden Markov sequence using the Viterbi algorithm. 
+
+\newln
+```{r}
+viterbi <- function(A,E,x) {
+  v <- matrix(NA, nr=length(x), nc=dim(A)[1])
+  v[1,] <- 0; v[1,1] <- 1
+  for(i in 2:length(x)) {
+    for (l in 1:dim(A)[1]) {v[i,l] <- E[l,x[i]] * max(v[(i-1),] * A[l,])}
+  }
+  return(v)
+}
+vit <- viterbi(A,E,dat[,1])
+vitrowmax <- apply(vit, 1, function(x) which.max(x))
+hiddenstate <- dat[,2]
+table(hiddenstate, vitrowmax)
+datt <- cbind(dat,vitrowmax)
+colnames(datt) <- c("observation","hidden_state","predicted state")
+t(datt)
+```
+
+
+\newpage
+
+**Part(c)**  
+
+Based on the 300 cases, the misclassification error is 0.5533333, while the accuracy is 0.4466667. This means that the algorithm classifies incorrectly more than half of the time.
+
+\newln
+```{r}
+(misclass <- sum(datt[,2] != datt[,3]) / 300)
+(accuracy <- 1 - misclass)
+```
+
+
+\newpage
+
+## Problem 4 
+
+**Part(a)**  
+
+Because both variables are not normal, we cannot use the Pearson correlation coefficient to test if there is significant association between the number of gears and the number of carburetors. Since both these variables are ordinal, we use the Spearman's correlation instead. Because we obtain a p-value of 0.5312 > $\alpha=0.05$ for the correlation test using Spearman's correlation, we fail to reject the null hypothesis that there is not a significant association between the number of gears and the number of carburetors.
+\newln
+```{r}
+data(mtcars)
+str(mtcars)
+x <- mtcars$gear
+y <- mtcars$carb
+shapiro.test(x)
+shapiro.test(y) # Both are non-normal - DO NOT USE PEARSON
+cor.test(x,y,method="spearman")
+```
+
+\newprob
+
+**Part(b)**  
+
+Because horsepower is not normal, we cannot use the Pearson correlation coefficient to test if there is significant association between mpg and horsepower. Using Spearman's correlation and Kendall's tau, we obtain p-values much less than $\alpha = 0.05$, so we reject the null hypothesis and conclude that there is a significant association between mpg and horsepower.
+\newln
+```{r}
+# 2 continuous variables - Pearson
+x <- mtcars$mpg
+y <- mtcars$hp
+shapiro.test(x)
+shapiro.test(y) # Not normal - DO NOT USE PEARSON
+cor.test(x,y,method="spearman")
+cor.test(x,y,method="kend")
+```
+
+\newprob
+
+**Part(c)**  
+
+Because the number of gears is not normal, we cannot use the Pearson correlation coefficient to test if there is significant association between mpg and the number of gears. Using Spearman's correlation and Kendall's tau, we again obtain p-values much less than $\alpha = 0.05$, so we reject the null hypothesis and conclude that there is a significant association between mpg and the number of gears.
+\newln
+```{r}
+x <- mtcars$mpg
+y <- mtcars$gear
+shapiro.test(x)
+shapiro.test(y) # DO NOT USE PEARSON
+cor.test(x,y,method="spearman")
+cor.test(x,y,method="kend")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
